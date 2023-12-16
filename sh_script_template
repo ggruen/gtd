@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Read the man page for this script by running perldoc on it.
+
+# Stop the script if any command exits with non-zero exit status and
+# isn't caught (e.g. by && or ||).
+set -e
+
+# Error if any variables are undefined.
+set -u
+
+# error "error string"
+# Given a string, outputs the string and exits the script with a non-zero
+# status.  Used to report errors.  The script will exit before error exits
+# with non-zero status, and set -e above will then abort the script.
+#
+# Example
+# do_something || error "something failed!"
+#
+error() {
+    echo "$@" >&2
+    exit 1
+}
+
+# When you change this, change the POD docs below too, and vice versa
+USAGE="usage: $(basename "$0") [-d directory_name] project_code"
+
+# Parse command line options.
+# Colon after a letter means it has an argument, otherwise it's a flag.
+# e.g. "d:" means you expect "-d arg", "v" means you expect "-v".
+while getopts hvd: OPT; do
+    case "$OPT" in
+        h)  # help
+            perldoc "$0"
+            exit 0
+            ;;
+        v) # script version
+            echo "$(basename "$0") version 0.1"
+            exit 0
+            ;;
+        d) # Project directory
+            project_dir="$OPTARG"
+            ;;
+        \?) # Unexpected argument - usage error
+            # getopts issues an error message
+            echo "$USAGE" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Remove the switches we parsed above.
+shift $((OPTIND - 1))
+
+# We want at least one non-option argument.
+# Remove this block if you don't need it.
+if [ $# -eq 0 ]; then
+    echo "$USAGE" >&2
+    exit 1
+fi
+
+# Access additional arguments as usual through
+# variables $@, $*, $1, $2, etc.
+
+# Script goes here
+
+cd "$project_dir"
+
+# Docs. Read by runing perldoc on this file
+: <<END_OF_DOCS
+=head1 NAME
+
+my_script - One-line description of what script does
+
+=head1 SYNOPSIS
+
+    code sample
+
+=head1 OPTIONS
+
+=head1 DESCRIPTION
+
+=cut
+END_OF_DOCS
+

@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# gtd_init: set gtd file/folder locations
+
+# Stop the script if any command exits with non-zero exit status and
+# isn't caught (e.g. by && or ||).
+set -eu
+
+# error "error string"
+# Given a string, outputs the string and exits the script with a non-zero
+# status.  Used to report errors.  The script will exit before error exits
+# with non-zero status, and set -e above will then abort the script.
+#
+# Example
+# do_something || error "something failed!"
+#
+error() {
+    echo "$@" >&2
+    exit 1
+}
+
+warn() {
+    echo "$@" >&2
+}
+
+USAGE="usage: $(basename "$0") [-d root_directory]"
+
+# Parse command line options.
+# Colon after a letter means it has an argument, otherwise it's a flag.
+# e.g. "d:" means you expect "-d arg", "v" means you expect "-v".
+quiet=""
+root_directory=""
+testing=""
+while getopts hvqd:t OPT; do
+    case "$OPT" in
+        h)  # help
+            man gtd-init
+            exit 0
+            ;;
+        v) # script version
+            echo "$(basename "$0") version 0.1"
+            exit 0
+            ;;
+        q) # Run quietly - not interactively
+            quiet=1
+            ;;
+        d) # Set up project/reference hierarchy in this root directory
+            root_directory="$OPTARG"
+            ;;
+	t) # Testing
+	    testing=1
+	    ;;
+        \?) # Unexpected argument - usage error
+            # getopts issues an error message
+            echo "$USAGE" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Remove the switches we parsed above.
+shift $((OPTIND - 1))
+
+# Access additional arguments as usual through
+# variables $@, $*, $1, $2, etc. or using this loop:
+config_dir=${XDG_CONFIG_HOME:-$HOME/.config}/gtd
+
+mkdir -p "$config_dir"
+config_file="$config_dir/config"
+
+EDITOR=${EDITOR:-nano}
+
+# Set up some smart defaults
+# Note that we want to write "~" to the file, not expand it to $HOME, so we
+# disable shellcheck's warning.
+# shellcheck disable=SC2088
+if [ "$root_directory" ] || [ "$testing" ] ; then
+    inbox_directory="$root_directory/Inbox"
+    project_support_directory="$root_directory/Project Support"
+    project_archive_directory="$root_directory/Archive/Project Support"
+    reference_materials_directory="$root_directory/Reference"
+    reference_materials_archive_directory="$root_directory/Archive/Reference"
+elif test -d "$HOME/Dropbox" ; then
+    inbox_directory="~/Dropbox/Inbox"
+    project_support_directory="~/Dropbox/Project Support"
+    project_archive_directory="~/Dropbox/Archive/Project Support"
+    reference_materials_directory="~/Dropbox/Reference"
+    reference_materials_archive_directory="~/Dropbox/Archive/Reference"
+elif test -d "$HOME/OneDrive" ; then
+    inbox_directory="~/OneDrive/Documents/Inbox"
+    project_support_directory="~/OneDrive/Documents/Project Support"
+    project_archive_directory="~/OneDrive/Documents/Archive/Project Support"
+    reference_materials_directory="~/OneDrive/Documents/Reference"
+    reference_materials_archive_directory="~/OneDrive/Documents/Archive/Reference"
+else
+    inbox_directory="~/Documents/Inbox"
+    project_support_directory="~/Documents/Project Support"
+    project_archive_directory="~/Documents/Archive/Project Support"
+    reference_materials_directory="~/Documents/Reference"
+    reference_materials_archive_directory="~/Documents/Archive/Reference"
+fi
+
+# Write the config file
+if test -f "$config_file" ; then
+    :
+else
+    echo "
+# This is where new folders and files you create that need to be processed
+# will go. That is, this is your inbox.
+inbox_directory:$inbox_directory
+
+# This is where project support folders and files will go. Use \"~\" to specify
+# your home directory.
+project_support_directory:$project_support_directory
+
+# This is where project folders and files will be archived with
+# \"gtd archive project\"
+project_archive_directory:$project_archive_directory
+
+# This is where your reference materials will go. Reference materials are
+# notes and such that aren't specific to a particular project but that you
+# might need; your \"general reference file system\" in GTD parlance.
+reference_materials_directory:$reference_materials_directory
+
+# This is where reference items will go when you run \"gtd archive reference\"
+reference_materials_archive_directory:$reference_materials_archive_directory
+" > "$config_file"
+fi
+
+chmod 644 "$config_file"
+test "$quiet" -o "$testing" || $EDITOR "$config_file"
+
+echo "GTD configured in $config_file"
+
+exit 0
+:  <<'END_OF_DOCS'
+=head1 NAME
+
+gtd-init - set up a stub configuration file with smart defaults
+
+=head1 SYNOPSIS
+
+    # Make the file and open it in $EDITOR (defaulting to nano)
+    gtd init
+
+    # Just make the file, don't edit
+    gtd init -q
+
+=head1 DESCRIPTION
+
+Sets up a config file with smart defaults in the appropriate configuration
+location for your system - i.e. $XDG_CONFIG_HOME/gtd/config (which defaults to
+.config/gtd/config in your home directory).
+
+"Smart" means it'll point your folders to ~/Dropbox if ~/Dropbox exists,
+~/OneDrive/Documents if ~/OneDrive exists, or ~/Documents otherwise, Setting up
+a hierarchy that looks like this:
+
+    - Project Support
+    - Reference
+    - Archive
+        - Project Support
+        - Reference
+
+If the C<-d> flag is specified, the defaults will use that directory instead of
+Dropbox, OneDrive, or Documents.
+
+=cut
+
+END_OF_DOCS
+

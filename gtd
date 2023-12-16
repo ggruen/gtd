@@ -1,0 +1,54 @@
+#!/bin/bash
+# gtd - dispatch script for gtd scripts
+
+set -e
+
+usage() {
+    echo "$(basename "$0") command arguments"
+    man gtd
+
+    exit 1
+}
+
+# Build the command by looking for executables in the gtd dir. This lets,
+# for example, "gtd project code -r" turn into "gtd_project_code -r".
+# We loop through arguments until we find a matching gtd command.
+dir=$(dirname "$0")
+command="$1"
+shift
+
+while [ "$1" ] && [ ! -e "$dir/gtd-$command" ] ; do
+    command="${command}-$1"
+    shift
+done
+
+"$dir/gtd-$command" "$@"
+
+exit 0
+:  <<'END_OF_DOCS'
+=head1 NAME
+
+gtd - Command-line GTD system
+
+=head1 SYNOPSIS
+
+    # Add "build_lunar_base.txt" to inbox, pop into $EDITOR to edit
+    gtd i Build lunar base
+
+    # Archive "Update complicated Mac App" project
+    gtd archive "Update complicated Mac App"
+
+    # cd into the project directory
+    gtd cd projects
+
+=head1 COMMANDS
+
+    upgrade [-u]
+        Upgrades the current instance of the gtd scripts based on the "gtd"
+        that was run. That is, if gtd is installed in ~/bin/gtd and you run "gtd
+        upgrade", gtd will be upgraded in ~/bin/gtd and ~/man.
+        If "-u" is specified, gtd will be uninstalled from that location
+        instead of installed.
+
+=cut
+END_OF_DOCS

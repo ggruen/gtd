@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# gtd_config_read - return value of a config variable
+# To read the man page for this script, "perldoc gtd_config_read".
+
+# Error if a command exits with non-zero status and isn't caught
+set -e
+
+error() {
+    echo "$@" >&2
+    exit 1
+}
+
+warn() {
+    echo "$@" >&2
+}
+
+usage() {
+    echo "usage: $(basename "$0") fieldname"
+
+    exit 1
+}
+
+USAGE="Usage: $(basename "$0") fieldname"
+
+# Parse command line options.
+# Colon after a letter means it has an argument, otherwise it's a flag.
+# e.g. "o:" means you expect "-o arg", "v" means you expect "-v".
+while getopts hv OPT; do
+    case "$OPT" in
+        h)  # help
+            echo "$USAGE"
+            man gtd-config-read
+            exit 0
+            ;;
+        v) # script version
+            echo "$(basename "$0") version 0.1"
+            exit 0
+            ;;
+        \?) # Unexpected argument - usage error
+            # getopts issues an error message
+            echo "$USAGE" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Remove the switches we parsed above.
+shift $((OPTIND - 1))
+
+# We want at least one non-option argument.
+# Remove this block if you don't need it.
+if [ $# -eq 0 ]; then
+    echo "$USAGE" >&2
+    exit 1
+fi
+
+# output_value_of_field config_dir field_name
+# Looks up and outputs the value of the provided field in the provided config
+# dir.  returns 1 if no value is found. Outputs the value to STDIN if found.
+output_value_of_field() {
+    config_dir="$1"
+    field_name="$2"
+
+    config_file="$config_dir/config"
+    test -f "$config_file" && \
+        field_value=$(grep -E "^${field_name}:" "$config_file" | cut -d: -f2-99)
+
+    # Do a shell-like replacement of a leading "~/" with the user's home dir.
+    field_value="${field_value/#\~\//$HOME/}"
+    test "$field_value" && printf "%s" "$field_value" || return 1
+}
+
+field="$1"
+
+test "$field" || usage
+
+# Try the home dir first - just let it go to STDOUT if it exists.
+if [ "$XDG_CONFIG_HOME" ] ; then
+    user_config_dir="$XDG_CONFIG_HOME/gtd"
+else
+    user_config_dir="$HOME/.config/gtd"
+fi
+output_value_of_field "$user_config_dir" "$field" && exit 0
+
+# Then try any system-wide configuration directories
+if [ "$XDG_CONFIG_DIRS" ] ; then
+    : # TODO: Parse path, see https://askubuntu.com/questions/600018/how-to-display-path-as-one-directory-per-line
+fi
+
+# Whether or not we set a value, return 0
+exit 0
+: <<'END_OF_DOCS'
+=head1 NAME
+
+gtd_config_read - Read a value from the config file
+
+=head1 SYNOPSIS
+
+    gtd_config_read [-p project_code] fieldname
+
+Examples:
+
+    # Get some settings for the current project
+    master_branch=`gtd_config_read master_branch`
+    develop_branch=`gtd_config_read develop_branch`
+    tracker_domain=`gtd_config_read tracker_domain`
+    issue_tracker=`gtd_config_read issue_tracker`
+
+    # Get master_branch for project MYAPP
+    master_branch=`gtd_config_read -p MYAPP master_branch`
+
+=head1 DESCRIPTION
+
+Reads and outputs the value of the config field C<fieldname>.  Reads from
+your home directory first, then the current git repository, if you're in one.
+
+When you are cd'd into a git repository, gtd_config_read
+will search for fieldname in a config file in your home directory first.
+If no value is found there, it will search in the root of the git repository.
+This means that for any given config setting, your home directory will
+override the git repository version, allowing you to set your own
+config settings while sharing settings with other developers working
+on the repository.
+
+If the value isn't found in either location, nothing is output.
+
+=cut
+END_OF_DOCS

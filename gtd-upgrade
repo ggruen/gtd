@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Read the man page for this script by running perldoc on it.
+
+# Stop the script if any command exits with non-zero exit status and
+# isn't caught (e.g. by && or ||).
+set -e
+
+# Clean up on any exit
+trap 'rm -rf /tmp/gtd' EXIT
+
+# Error if any variables are undefined.
+set -u
+
+# error "error string"
+# Given a string, outputs the string and exits the script with a non-zero
+# status.  Used to report errors.  The script will exit before error exits
+# with non-zero status, and set -e above will then abort the script.
+#
+# Example
+# do_something || error "something failed!"
+#
+error() {
+    echo "$@" >&2
+    exit 1
+}
+
+# When you change this, change the POD docs below too, and vice versa
+USAGE="usage: $(basename "$0")"
+
+# Parse command line options.
+# Colon after a letter means it has an argument, otherwise it's a flag.
+# e.g. "d:" means you expect "-d arg", "v" means you expect "-v".
+DRY_RUN=""
+INSTALL_DIRECTION="install"
+while getopts hvnu OPT; do
+    case "$OPT" in
+        h)  # help
+            perldoc "$0"
+            exit 0
+            ;;
+        v) # script version
+            echo "$(basename "$0") version 0.1"
+            exit 0
+            ;;
+        u) # Uninstall
+            INSTALL_DIRECTION="uninstall" ;;
+        n) # Dry run
+            DRY_RUN=1 ;;
+        \?) # Unexpected argument - usage error
+            # getopts issues an error message
+            echo "$USAGE" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Remove the switches we parsed above.
+shift $((OPTIND - 1))
+
+# We want at least one non-option argument.
+# Remove this block if you don't need it.
+#if [ $# -eq 0 ]; then
+#    echo "$USAGE" >&2
+#    exit 1
+#fi
+
+# Access additional arguments as usual through
+# variables $@, $*, $1, $2, etc.
+
+# Script goes here
+
+# Figure out where gtd is installed - /blah/bin/gtd
+script_dir=$(dirname "$0")  # /blah/bin
+cd "$script_dir"/..         # /blah
+# (-P is physical dir w/all symbolic links resolved)
+install_dir=$( pwd -P )     # /blah
+
+# Make a printable action e.g. "Install" or "Uninstall" (capitalized)
+# Note, bash 4 can do ${INSTALL_DIRECTION^}, but MacOS 10.14.3 is still bash 3.
+# Bash 4 came out the year Steve Jobs died, if you need evidence that Apple
+# stopped progressing at that point.
+action="$(tr '[:lower:]' '[:upper:]' <<< ${INSTALL_DIRECTION:0:1})${INSTALL_DIRECTION:1}"
+
+echo "${action}ing in $install_dir..."  # Installing in /blah...
+
+cd /tmp || exit 1  # Future-proof. -e set above so it should exit anyway.
+
+rm -rf gtd
+git clone https://gitlab.com/ggruen/gtd.git
+cd gtd
+if [ "$DRY_RUN" ] ; then
+    echo "Dry run - not really ${action}ing."
+else
+    make prefix="$install_dir" "$INSTALL_DIRECTION"
+fi
+# See trap at top of script for cleanup
+
+echo "${action}ed gtd in $install_dir."
+
+# Docs. Read by runing perldoc on this file
+: <<END_OF_DOCS
+=head1 NAME
+
+gtd-upgrade - Upgrade or unstall gtd scripts
+
+=head1 SYNOPSIS
+
+    gtd upgrade
+
+    gtd upgrade -u  # Uninstall
+
+=head1 OPTIONS
+
+=over
+
+=item -u
+
+Uninstall the currently installed gtd scripts. This can be handy both for uninstalling gtd completely or for unstalling an accidental version - say you installed it in your home dir and in /usr/local, "gtd upgrade -u" will install the first version found in your $PATH.
+
+C<gtd upgrade> works off of the script you execute, so if you wanted to explicitly remove a version - say in /usr/local, you could run it explicitly, e.g. "/usr/local/bin/gtd upgrade -u".
+
+=back
+
+=head1 DESCRIPTION
+
+C<gtd-upgrade> pulls down the latest version of the gtd scripts from gitlab and
+runs "make install" with the prefix set based on the location of the gtd
+script.
+
+=cut
+END_OF_DOCS
+
