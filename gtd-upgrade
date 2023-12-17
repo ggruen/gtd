@@ -86,7 +86,7 @@ echo "${action}ing in $install_dir..."  # Installing in /blah...
 cd /tmp || exit 1  # Future-proof. -e set above so it should exit anyway.
 
 rm -rf gtd
-git clone https://gitlab.com/ggruen/gtd.git
+git clone https://github.com/ggruen/gtd.git
 cd gtd
 if [ "$DRY_RUN" ] ; then
     echo "Dry run - not really ${action}ing."
