@@ -3,13 +3,6 @@
 
 set -e
 
-usage() {
-    echo "$(basename "$0") command arguments"
-    man gtd
-
-    exit 1
-}
-
 # Build the command by looking for executables in the gtd dir. This lets,
 # for example, "gtd project code -r" turn into "gtd_project_code -r".
 # We loop through arguments until we find a matching gtd command.
@@ -24,7 +17,6 @@ done
 
 "$dir/gtd-$command" "$@"
 
-exit 0
 :  <<'END_OF_DOCS'
 =head1 NAME
 
@@ -32,14 +24,14 @@ gtd - Command-line GTD system
 
 =head1 SYNOPSIS
 
+    # Set up location of inbox, project support, and reference directories
+    gtd init
+
     # Add "build_lunar_base.txt" to inbox, pop into $EDITOR to edit
     gtd i Build lunar base
 
     # Archive "Update complicated Mac App" project
     gtd archive "Update complicated Mac App"
-
-    # cd into the project directory
-    gtd cd projects
 
 =head1 COMMANDS
 
