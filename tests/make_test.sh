@@ -12,6 +12,7 @@ tearDown() {
     cd "$SCRIPTDIR" || exit 1
 }
 
+# shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
 testMakeInstallSucceeds() {
     cd "$SCRIPTDIR/.." || exit 1
     make prefix=/tmp/gtd_test_install install
@@ -21,7 +22,10 @@ testMakeInstallSucceeds() {
     assertTrue "bin dir should exist" $?
 
     test -d /tmp/gtd_test_install/man/man1
-    assertTrue "man/man1 dirs should exist in /tmp/gtd_test_install" $?
+    assertFalse "man/man1 dirs should not exist in /tmp/gtd_test_install" $?
+
+    test -d /tmp/gtd_test_install/share/man/man1
+    assertTrue "share/man/man1 dirs should exist in /tmp/gtd_test_install" $?
 
     rm -rf /tmp/gtd_test_install
     return 0

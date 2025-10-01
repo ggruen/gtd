@@ -1,5 +1,5 @@
 # gtd
-Command-line gtd system
+Command-line GTD system
 
 # Synopsis
 
@@ -12,9 +12,6 @@ Command-line gtd system
     # Archive "Update complicated Mac App" project
     gtd archive "Update complicated Mac App"
 
-    # cd into the project directory
-    gtd cd projects
-
 # Description
 
 `gtd` is a command-line tool that implements a basic GTD system.
@@ -23,7 +20,7 @@ list of projects.
 You put new ideas into an "Inbox" folder.
 Add an inbox item with "gtd i" - it opens `$EDITOR` and you can type. Also dump
 any other kind of file into your inbox, because it's just a directory on your
-computer. Your project list is `gtd cd projects && ls`.
+computer. Your project list is `cdp && ls`.
 
 I recommend setting up aliases - I use this in my `.bashrc`:
 
@@ -47,7 +44,7 @@ Explorer are pretty powerful tools for file management already).
 - Download the files
 - `cd gtd`
 - `sudo make prefix=/usr/local install` (you can also just do `make install` to
-  install into ~/bin and ~/man)
+  install into ~/.local/bin and ~/.local/share/man)
 
 # Setup
 
