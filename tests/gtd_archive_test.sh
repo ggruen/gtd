@@ -18,6 +18,7 @@ tearDown() {
     cd "$SCRIPTDIR" || exit 1
 }
 
+# shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
 testArchiveMovesProjectFolderToArchiveFolder() {
     # Make sure we don't start writing files places that could break things
     test "$XDG_CONFIG_HOME" || {
@@ -43,6 +44,38 @@ testArchiveMovesProjectFolderToArchiveFolder() {
 
     # and not in the project support folder
     assertFalse "[ -e \"$(gtd config read project_support_directory)/test_project\" ]"
+}
+
+# shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
+testArchiveMovesReferenceFolderToArchiveFolder() {
+    # Make sure we don't start writing files places that could break things
+    test "$XDG_CONFIG_HOME" || {
+        echo "XDG_CONFIG_HOME isn't set. Check oneTimeSetup function." >&2
+        exit 1
+    }
+
+    test "$gtd_dir" || {
+        echo "gtd_dir not set - checkout oneTimeSetup function." >&2
+        exit 1
+    }
+
+    # Get the reference directories
+    reference_directory="$(gtd config read reference_materials_directory)"
+    reference_archive_directory="$(gtd config read reference_materials_archive_directory)"
+
+    # Given a folder in the reference folder
+    mkdir -p "$reference_directory/test_reference"
+
+    # When I archive it
+    printf "%s\n" "Archiving $reference_directory/test_reference"
+    mkdir -p "$reference_archive_directory"
+    gtd archive reference test_reference
+
+    # Then it's in the archive folder
+    assertTrue "[ -d \"$reference_archive_directory/test_reference\" ]"
+
+    # and not in the reference folder
+    assertFalse "[ -e \"$reference_directory/test_reference\" ]"
 }
 
 oneTimeTearDown() {
